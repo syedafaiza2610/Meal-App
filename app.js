@@ -13,71 +13,76 @@
   const initialText = "Bringing class to cuisine.Foodies welcome here!";
   typeWriterEffect(initialText, "output");
 
-  const url = "https://www.themealdb.com/api/json/v1/1/random.php";
-  const thumbnailEl = document.getElementById("thumbnail");
-  const titleEl = document.getElementById("title");
-  const recipeEl = document.getElementById("recipe");
-  const mycardEl = document.getElementById("mycard");
-  const searchtxtEl = document.getElementById("searchtxt");
-  const searchRecEl = document.getElementById("searchRec");
-  
+const searchBtn = document.getElementById('search-btn');
+const mealList = document.getElementById('meal');
+const mealDetailsContent = document.querySelector('.meal-details-content');
+const recipeCloseBtn = document.getElementById('recipe-close-btn');
 
-  function getFullRecipe(mealId) {
-    fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`)
-        .then((data) => {
-            if (!data.ok) {
-                throw new Error(`Network response was not ok: ${data.status}`);
-            }
-            return data.json();
-        })
-        .then((data1) => {
-            const result = data1.meals[0];
-            const fullRecipe = result.strInstructions;
 
-            // Display the full recipe in a modal or another section as needed
-            alert(fullRecipe);
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-        });
+searchBtn.addEventListener('click', getMealList);
+mealList.addEventListener('click', getMealRecipe);
+recipeCloseBtn.addEventListener('click', () => {
+    mealDetailsContent.parentElement.classList.remove('showRecipe');
+});
+function getMealList(){
+    let searchInputTxt = document.getElementById('search-input').value.trim();
+    fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?i=${searchInputTxt}`)
+    .then(response => response.json())
+    .then(data => {
+        let html = "";
+        if(data.meals){
+            data.meals.forEach(meal => {
+                html += `
+                    <div class = "meal-item" data-id = "${meal.idMeal}">
+                        <div class = "meal-img">
+                            <img src = "${meal.strMealThumb}" alt = "food">
+                        </div>
+                        <div class = "meal-name">
+                            <h3>${meal.strMeal}</h3>
+                            <a href = "#" class = "recipe-btn">Get Recipe</a>
+                        </div>
+                    </div>
+                `;
+            });
+            mealList.classList.remove('notFound');
+        } else{
+            html = "Not Found";
+            mealList.classList.add('notFound');
+        }
+
+        mealList.innerHTML = html;
+    });
 }
+
+function getMealRecipe(e){
+    e.preventDefault();
+    if(e.target.classList.contains('recipe-btn')){
+        let mealItem = e.target.parentElement.parentElement;
+        fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealItem.dataset.id}`)
+        .then(response => response.json())
+        .then(data => mealRecipeModal(data.meals));
+    }
+}
+
+function mealRecipeModal(meal) {
+    console.log(meal);
+    meal = meal[0];
+    let html = `
+        <h2 class="recipe-title">${meal.strMeal}</h2>
+       
+        <div class="recipe-instruct">
+            <p>${meal.strInstructions}</p>
+        </div>
+    `;
+
+    mealDetailsContent.innerHTML = html;
+    
   
-const searchRecipe = () => {
-  searchRecEl.textContent = "";
+    mealDetailsContent.parentElement.style.backgroundColor = 'black';
+    
+    mealDetailsContent.parentElement.classList.add('showRecipe');
+}
 
-  fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${searchtxtEl.value}`)
-      .then((data) => {
-          if (!data.ok) {
-              throw new Error(`Network response was not ok: ${data.status}`);
-          }
-          return data.json();
-      })
-      .then((data1) => {
-          try {
-              const len = data1.meals.length;
-
-              searchRecEl.innerHTML += '<div class="container mt-4">';
-            
-              searchRecEl.innerHTML += '<div class="d-flex flex-wrap justify-content-center">';
-
-              for (let i = 0; i < len; i++) {
-                 
-                  searchRecEl.innerHTML += `<div class="card mb-4 col-4 " style="col-4 align:center width:20%">
-                      <img src="${data1.meals[i].strMealThumb}" class="card-img-top" alt="...">
-                      <div class="card-body">
-                          <h5 class="card-title">${data1.meals[i].strMeal}</h5>
-                          <p class="card-text">${data1.meals[i].strInstructions.slice(0, 200) + "...."}</p>
-                          <button class="btn btn-primary" onclick="getFullRecipe('${data1.meals[i].idMeal}')">Get Full Recipe</button>
-                      </div>
-                  </div>`;
-              }
-
-              searchRecEl.innerHTML += '</div></div>';
-          } catch (e) {
-              console.log("Error:", e);
-          }
-      });
-};
 
 
 
